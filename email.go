@@ -18,7 +18,6 @@ var smtpAuth = smtp.PlainAuth(
 func sendUpdatedAssigneeEmail(recipient User, issue Issue) {
 
 	// Channel waits for 12 mins after issue is updated, and then sends email
-
 	timer := time.NewTimer(12 * time.Minute)
 	<-timer.C
 
@@ -45,6 +44,7 @@ func sendPeriodicEmailsForOpenIssues(timePeriod time.Duration) {
 
 	ticker := time.NewTicker(timePeriod)
 
+	// Start ticker channel
 	for _ = range ticker.C {
 
 		for _, user := range Users {
@@ -54,7 +54,7 @@ func sendPeriodicEmailsForOpenIssues(timePeriod time.Duration) {
 			// Get all issues assigned to user that are open
 			for _, issue := range Issues {
 
-				if issue.AssignedTo.Username == user.Username {
+				if issue.AssignedTo == user.Username {
 
 					if issue.Status == "Open" {
 						usersOpenIssues = append(usersOpenIssues, issue.ID+" - "+issue.Title)
@@ -80,8 +80,6 @@ func sendPeriodicEmailsForOpenIssues(timePeriod time.Duration) {
 			if err != nil {
 				fmt.Errorf("Error occured while sending email - " + err.Error())
 			}
-
 		}
-
 	}
 }

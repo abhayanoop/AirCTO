@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 )
@@ -18,8 +19,12 @@ func main() {
 	http.HandleFunc("/issue/create", authMiddleware(createIssueHandler, http.MethodPost))
 	http.HandleFunc("/issue/update", authMiddleware(updateIssueHandler, http.MethodPut))
 	http.HandleFunc("/issue/delete", authMiddleware(deleteIssueHandler, http.MethodDelete))
+	http.HandleFunc("/issue/list", authMiddleware(getAllIssuesHandler, http.MethodGet))
+
+	fmt.Println("Listening to localhost:8080")
 
 	http.ListenAndServe(":8080", nil)
+
 }
 
 func authMiddleware(
@@ -28,13 +33,23 @@ func authMiddleware(
 
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		if method == r.Method {
+		token := r.Header.Get("Authorization")
 
-			fn(w, r)
+		if _, ok := Users[token]; !ok {
+
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 
 		} else {
 
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			if method == r.Method {
+
+				// Actual Handler Function
+				fn(w, r)
+
+			} else {
+
+				http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			}
 		}
 	}
 }

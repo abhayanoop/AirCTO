@@ -22,7 +22,11 @@ func createIssueHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	Issues[issue.ID] = issue
+	if _, ok := Issues[issue.ID]; !ok {
+		Issues[issue.ID] = issue
+	} else {
+		http.Error(w, "Issue ID already exists", http.StatusInternalServerError)
+	}
 
 	return
 }
@@ -39,7 +43,7 @@ func getIssueHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		fmt.Fprintf(w, "%v", issueJSON)
+		fmt.Fprintf(w, "%v", string(issueJSON))
 
 	} else {
 
@@ -49,11 +53,30 @@ func getIssueHandler(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
+func getAllIssuesHandler(w http.ResponseWriter, r *http.Request) {
+
+	issuesJSON, err := json.Marshal(Issues)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprintf(w, "%v", string(issuesJSON))
+
+	return
+}
+
 func updateIssueHandler(w http.ResponseWriter, r *http.Request) {
 
 	issueID := r.URL.Query().Get("id")
+	username := Users[r.Header.Get("Authorization")].Username
 
 	if currentIssue, ok := Issues[issueID]; ok {
+
+		if currentIssue.AssignedTo != username {
+			http.Error(w, "User is not authorized to perform this function", http.StatusUnauthorized)
+			return
+		}
 
 		b, err := ioutil.ReadAll(r.Body)
 		if err != nil {
@@ -68,9 +91,9 @@ func updateIssueHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if updatedIssue.AssignedTo.Username != currentIssue.AssignedTo.Username {
+		if updatedIssue.AssignedTo != currentIssue.AssignedTo {
 
-			go sendUpdatedAssigneeEmail(updatedIssue.AssignedTo, updatedIssue)
+			go sendUpdatedAssigneeEmail(Users[updatedIssue.AssignedTo], updatedIssue)
 		}
 
 		Issues[currentIssue.ID] = updatedIssue
@@ -86,8 +109,14 @@ func updateIssueHandler(w http.ResponseWriter, r *http.Request) {
 func deleteIssueHandler(w http.ResponseWriter, r *http.Request) {
 
 	issueID := r.URL.Query().Get("id")
+	username := Users[r.Header.Get("Authorization")].Username
 
-	if _, ok := Issues[issueID]; ok {
+	if issue, ok := Issues[issueID]; ok {
+
+		if issue.AssignedTo != username {
+			http.Error(w, "User is not authorized to perform this function", http.StatusUnauthorized)
+			return
+		}
 
 		delete(Issues, issueID)
 

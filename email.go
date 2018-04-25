@@ -7,14 +7,6 @@ import (
 	"time"
 )
 
-// Dummy smtp server credentials for test
-var smtpAuth = smtp.PlainAuth(
-	"",
-	"abhay@example.com",
-	"password",
-	"mail.example.com",
-)
-
 func sendUpdatedAssigneeEmail(recipient User, issue Issue) {
 
 	// Channel waits for 12 mins after issue is updated, and then sends email
@@ -28,9 +20,9 @@ func sendUpdatedAssigneeEmail(recipient User, issue Issue) {
 		issue.ID + " - " + issue.Title + " has been assigned to you.\r\n"
 
 	err := smtp.SendMail(
-		"mail.example.com:25",
+		smtpServerPort,
 		smtpAuth,
-		"abhay@example.org",
+		smtpFrom,
 		[]string{recipient.Email},
 		[]byte(body),
 	)
@@ -70,9 +62,9 @@ func sendPeriodicEmailsForOpenIssues(timePeriod time.Duration) {
 				strings.Join(usersOpenIssues, ",") + "\r\n"
 
 			err := smtp.SendMail(
-				"mail.example.com:25",
+				smtpServerPort,
 				smtpAuth,
-				"abhay@example.org",
+				smtpFrom,
 				[]string{user.Email},
 				[]byte(body),
 			)

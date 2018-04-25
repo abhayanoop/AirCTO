@@ -24,6 +24,7 @@ func createIssueHandler(w http.ResponseWriter, r *http.Request) {
 
 	if _, ok := Issues[issue.ID]; !ok {
 		Issues[issue.ID] = issue
+		fmt.Fprintf(w, "%v", "Issue created successfully")
 	} else {
 		http.Error(w, "Issue ID already exists", http.StatusInternalServerError)
 	}
@@ -73,7 +74,7 @@ func updateIssueHandler(w http.ResponseWriter, r *http.Request) {
 
 	if currentIssue, ok := Issues[issueID]; ok {
 
-		if currentIssue.AssignedTo != username {
+		if currentIssue.CreatedBy != username {
 			http.Error(w, "User is not authorized to perform this function", http.StatusUnauthorized)
 			return
 		}
@@ -98,6 +99,8 @@ func updateIssueHandler(w http.ResponseWriter, r *http.Request) {
 
 		Issues[currentIssue.ID] = updatedIssue
 
+		fmt.Fprintf(w, "%v", "Issue updated successfully")
+
 	} else {
 
 		http.Error(w, "Issue not found!", http.StatusNotFound)
@@ -113,12 +116,13 @@ func deleteIssueHandler(w http.ResponseWriter, r *http.Request) {
 
 	if issue, ok := Issues[issueID]; ok {
 
-		if issue.AssignedTo != username {
+		if issue.CreatedBy != username {
 			http.Error(w, "User is not authorized to perform this function", http.StatusUnauthorized)
 			return
 		}
 
 		delete(Issues, issueID)
+		fmt.Fprintf(w, "%v", "Issue deleted successfully")
 
 	} else {
 

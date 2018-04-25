@@ -1,5 +1,7 @@
 package main
 
+import "net/smtp"
+
 type User struct {
 	Email               string
 	Username            string
@@ -15,6 +17,18 @@ type Issue struct {
 	CreatedBy          string
 	Status             string
 }
+
+// Dummy smtp server credentials
+var (
+	smtpServerPort = "mail.example.com:25" // smtp host with port
+	smtpFrom       = "abhay@example.org"   // From address for email
+	smtpAuth       = smtp.PlainAuth(
+		"",
+		"abhay@example.com", // smtp username
+		"password",          //smtp password
+		"mail.example.com",  // smtp host
+	)
+)
 
 // Temporary alternative for a database
 var Issues map[string]Issue
@@ -46,24 +60,13 @@ func init() {
 		AccessToken: "tokenuser2",
 	}
 
-	Users["tokenabhay"] = User{
-		Email:       "abhayanoop1994@gmail.com",
-		Username:    "abhayanoop",
-		FirstName:   "Abhay",
-		LastName:    "Anoop",
-		Password:    "myPassword",
-		AccessToken: "tokenabhay",
-	}
-
-	// Hardcoded issues
-
-	Issues["issue1"] = Issue{
-		ID:          "issue1",
-		Title:       "Issue 1",
-		Description: "first issue",
-		AssignedTo:  "abhayanoop",
-		CreatedBy:   "abhayanoop",
-		Status:      "Open",
+	Users["tokenuser3"] = User{
+		Email:       "user3@gmail.com",
+		Username:    "user3",
+		FirstName:   "Sam",
+		LastName:    "Rowley",
+		Password:    "pass3",
+		AccessToken: "tokenuser3",
 	}
 
 }

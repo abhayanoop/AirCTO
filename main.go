@@ -1,6 +1,7 @@
 package main
 
 import (
+	"AirCTO/dbfuncs"
 	"fmt"
 	"net/http"
 	"time"
@@ -35,9 +36,13 @@ func authMiddleware(
 
 		token := r.Header.Get("Authorization")
 
-		if _, ok := Users[token]; !ok {
+		if exists, err := dbfuncs.CheckUserExists(token); err != nil || !exists {
+			if err == nil {
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
 
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			http.Error(w, err.Error(), http.StatusUnauthorized)
 
 		} else {
 

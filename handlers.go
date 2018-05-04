@@ -1,6 +1,8 @@
 package main
 
 import (
+	"AirCTO/dbfuncs"
+	"AirCTO/structs"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -15,19 +17,19 @@ func createIssueHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var issue Issue
+	var issue structs.Issue
 
 	if err = json.Unmarshal(b, &issue); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if _, ok := Issues[issue.ID]; !ok {
-		Issues[issue.ID] = issue
-		fmt.Fprintf(w, "%v", "Issue created successfully")
-	} else {
-		http.Error(w, "Issue ID already exists", http.StatusInternalServerError)
+	if err = dbfuncs.CreateIssue(issue); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
+
+	fmt.Fprintf(w, "%v", "Issue created successfully")
 
 	return
 }
@@ -36,27 +38,32 @@ func getIssueHandler(w http.ResponseWriter, r *http.Request) {
 
 	issueID := r.URL.Query().Get("id")
 
-	if issue, ok := Issues[issueID]; ok {
-
-		issueJSON, err := json.Marshal(issue)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		fmt.Fprintf(w, "%v", string(issueJSON))
-
-	} else {
-
-		http.Error(w, "Issue not found!", http.StatusNotFound)
+	issue, err := dbfuncs.GetIssue(issueID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
+
+	issueJSON, err := json.Marshal(issue)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprintf(w, "%v", string(issueJSON))
 
 	return
 }
 
 func getAllIssuesHandler(w http.ResponseWriter, r *http.Request) {
 
-	issuesJSON, err := json.Marshal(Issues)
+	issues, err := dbfuncs.GetAllIssues()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	issuesJSON, err := json.Marshal(issues)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -70,41 +77,51 @@ func getAllIssuesHandler(w http.ResponseWriter, r *http.Request) {
 func updateIssueHandler(w http.ResponseWriter, r *http.Request) {
 
 	issueID := r.URL.Query().Get("id")
-	username := Users[r.Header.Get("Authorization")].Username
+	userAccessToken := r.Header.Get("Authorization")
 
-	if currentIssue, ok := Issues[issueID]; ok {
-
-		if currentIssue.CreatedBy != username {
-			http.Error(w, "User is not authorized to perform this function", http.StatusUnauthorized)
-			return
-		}
-
-		b, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		var updatedIssue Issue
-
-		if err = json.Unmarshal(b, &updatedIssue); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-
-		if updatedIssue.AssignedTo != currentIssue.AssignedTo {
-
-			go sendUpdatedAssigneeEmail(Users[updatedIssue.AssignedTo], updatedIssue)
-		}
-
-		Issues[currentIssue.ID] = updatedIssue
-
-		fmt.Fprintf(w, "%v", "Issue updated successfully")
-
-	} else {
-
-		http.Error(w, "Issue not found!", http.StatusNotFound)
+	user, err := dbfuncs.GetUserFromAccessToken(userAccessToken)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
+
+	username := user.Username
+
+	currentIssue, err := dbfuncs.GetIssue(issueID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if currentIssue.CreatedBy != username {
+		http.Error(w, "User is not authorized to perform this function", http.StatusUnauthorized)
+		return
+	}
+
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var updatedIssue structs.Issue
+
+	if err = json.Unmarshal(b, &updatedIssue); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if updatedIssue.AssignedTo != currentIssue.AssignedTo {
+
+		go sendUpdatedAssigneeEmail(updatedIssue.AssignedTo, updatedIssue)
+	}
+
+	if err = dbfuncs.UpdateIssue(issueID, updatedIssue); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprintf(w, "%v", "Issue updated successfully")
 
 	return
 }
@@ -112,22 +129,33 @@ func updateIssueHandler(w http.ResponseWriter, r *http.Request) {
 func deleteIssueHandler(w http.ResponseWriter, r *http.Request) {
 
 	issueID := r.URL.Query().Get("id")
-	username := Users[r.Header.Get("Authorization")].Username
+	userAccessToken := r.Header.Get("Authorization")
 
-	if issue, ok := Issues[issueID]; ok {
-
-		if issue.CreatedBy != username {
-			http.Error(w, "User is not authorized to perform this function", http.StatusUnauthorized)
-			return
-		}
-
-		delete(Issues, issueID)
-		fmt.Fprintf(w, "%v", "Issue deleted successfully")
-
-	} else {
-
-		http.Error(w, "Issue not found!", http.StatusNotFound)
+	user, err := dbfuncs.GetUserFromAccessToken(userAccessToken)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
+
+	username := user.Username
+
+	issue, err := dbfuncs.GetIssue(issueID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if issue.CreatedBy != username {
+		http.Error(w, "User is not authorized to perform this function", http.StatusUnauthorized)
+		return
+	}
+
+	if err = dbfuncs.DeleteIssue(issueID); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprintf(w, "%v", "Issue deleted successfully")
 
 	return
 }

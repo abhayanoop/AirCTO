@@ -5,14 +5,25 @@ Requirements:
 
 * An SMTP mail server
 * Postman tool or any alternate API testing tool
+* Install Postgres database. If not installed,  
+
+```
+  ubuntu/linux - https://www.digitalocean.com/community/tutorials/how-to-install-and-use-postgresql-on-ubuntu-16-04
+
+  mac osx - https://www.codementor.io/engineerapart/getting-started-with-postgresql-on-mac-osx-are8jcopb
+```
+    
 
 To Do:
+
+* By default, postgres installation creates user 'postgres' and database 'postgres'.  
+  These credentials have been used in this program. If you require to change database or user or password(optional), you can change anytime in "structs/structs.go" database credentials.  
 
 * Submit the SMTP mail server credentials in the file "structs.go" for the variables provided
   
   smtpServerPort, smtpFrom, smtpAuth
   
-* Create new legit users in code in the file "structs.go" to test email service.
+* Create new legit users in code in the file "dbfuncs/db.go" to test email service.
   Three dummy users have been hardcoded in code for reference. These users can also be utilised for API calls.
   
 Working:
@@ -27,14 +38,14 @@ Working:
   
       raw application/JSON body
   
-      request body example = {"ID":"issue1","Title":"Issue 1","Description":"first issue", "AssignedTo":"user1","CreatedBy":"user2","Status":"Open"}
+      request body example = {"Title":"Issue 1","Description":"first issue", "AssignedTo":"user1","CreatedBy":"user2","Status":"Open"}
   
   
 * /issue/update?id=(issue-id)
   
       raw application/JSON body
   
-      request body example = {"ID":"issue1","Title":"Issue 1 update","Description":"updated issue", "AssignedTo":"user3","CreatedBy":"user2","Status":"Open"}
+      request body example = {"Title":"Issue 1 update","Description":"updated issue", "AssignedTo":"user3","CreatedBy":"user2","Status":"Open"}
   
   
 * /issue/delete?id=(issue-id)
@@ -52,7 +63,7 @@ Working:
   
   Body raw application/JSON => 
   
-  {"ID":"issue1","Title":"Issue 1","Description":"first issue", "AssignedTo":"user1","CreatedBy":"user2","Status":"Open"}
+  {"Title":"Issue 1","Description":"first issue", "AssignedTo":"user1","CreatedBy":"user2","Status":"Open"}
   
   
   

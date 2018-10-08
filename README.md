@@ -1,5 +1,5 @@
-# AirCTO
-Code for issue tracking test provided by AirCTO
+# IssueTracker
+Sample code for issue tracking
 
 Requirements:
 
